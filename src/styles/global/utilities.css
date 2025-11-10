@@ -1,0 +1,14 @@
+
+.is-sm { display: block; }
+@media (--md) { .is-sm { display: none; } }
+
+.is-lg { display: none; }
+@media (--lg) { .is-lg { display: block; } }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip: rect(0 0 0 0);
+  overflow: hidden; white-space: nowrap;
+}
