@@ -39,7 +39,6 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
   - layout → `.l-*`
   - component → `.c-*`
   - product → `.p-*`
-- **余白**: `var(--sp-*)` のトークンのみ使用、`px`の直接指定は禁止
 - **命名**: 役割 → ブロック → 要素 → 修飾の順で判断
 - **変更提案**: 理由を 1 行添えること
 - **タイポグラフィ・カラー**: Base を正とし、コンポーネント内で必要な差分のみ上書き
