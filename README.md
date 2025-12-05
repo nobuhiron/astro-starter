@@ -66,6 +66,25 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 
 ## 4. CSS Architecture
 
+### Layout と Component の使い分け（header / footer を含む）
+
+- `.l-*` は **ページ全体の骨組み（レイアウト）専用クラス**
+
+  - 例：`.l-header`, `.l-main`, `.l-footer`, `.l-container`
+  - 役割：
+    - ページ全体の上下配置・幅・背景色などの「枠」を定義する
+    - 1 カラム / 2 カラムレイアウト、sticky header など構造レベルのレイアウト
+  - 注意：
+    - `.l-*` の中には、ボタン色・フォントサイズなど「コンポーネント固有の見た目」は書かない
+
+- `.c-*` は **再利用可能な UI コンポーネント**
+  - 例：
+    - `.c-site-header`, `.c-global-nav`, `.c-site-footer`
+    - `.c-button`, `.c-card`, `.c-section-title` など
+  - 役割：
+    - header / footer 内のロゴ・ナビ・リンク群など「中身」の見た目
+    - 他のページでも再利用できるパーツのスタイル
+
 ### Typography（タイポグラフィ）
 
 - **基本フォントサイズ**: `var(--font-size-base)`を優先的に使用（`src/styles/foundation/base.css`で定義）
@@ -101,13 +120,14 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 **注意：** ブラウザサポートを確認し、必要に応じてフォールバックを用意。
 
 ## 5. Image Guidelines (画像の扱い)
+
 画像：src/assets/images
 
 そこから import hero from '@/assets/images/hero.jpg';
 
 <Image src={hero} /> や <img src={hero.src}> で利用
 
-dist後はassetsPrefix(CDN_URL) が効く
+dist 後は assetsPrefix(CDN_URL) が効く
 
 ### アクセシビリティ（必須）
 
@@ -206,13 +226,14 @@ dist後はassetsPrefix(CDN_URL) が効く
 - 「可変余白は **section 単位** で決める。ユーティリティで調整しない」
 - 「デザインに現れない情報は **HTML 構造とラベルで表現**」
 
- セクションコンポーネントは `src/sections/SectionXxx.astro` の命名に揃えてください。
+セクションコンポーネントは `src/sections/SectionXxx.astro` の命名に揃えてください。
+
 - 再利用 UI コンポーネントは `src/components/` 配下に役割ベースで命名してください。
 - 新しい JS の機能は `src/scripts/[機能名].js` に `initXxx()` 関数を定義し、`main.js` から呼び出してください。
 
 ## ディレクトリ構成（このプロジェクトの実体）
 
-```txt
+````txt
 src/
   assets/
     images/            # 画像ファイル（必ずここから import して使う）
@@ -220,7 +241,7 @@ src/
   pages/               # ページ本体（Astro標準）
     index.astro        # TOPページ
 
-  layouts/             # レイアウト（BaseLayout など）
+  layouts/             # レイアウト（HeaderやFooter など）
 
   sections/            # ページ内セクション（Hero, Features, FAQ などのまとまり）
                        # 例：SectionHero.astro, SectionFeatureList.astro
@@ -255,9 +276,67 @@ src/
     products/          # .p-* の商品・ページ固有スタイル
       index.css        # ページ／プロダクト固有のスタイルをここに集約
 
+### Astro: pages と layouts の使い分け
+
+- `src/pages/`
+  - 各 URL に対応する「ページ本体」を定義する場所。
+  - 役割：
+    - どの Layout (`BaseLayout` など) を使うか決める
+    - どの Section コンポーネントを並べるか決める
+    - ページ固有の `<title>` や `<meta>` を指定する
+  - 例：`src/pages/index.astro` で Top ページのセクション構成を定義する
+
+- `src/layouts/`
+  - 複数ページで共通する「外枠（レイアウトテンプレート）」を定義する場所。
+  - 役割：
+    - `<html>`, `<head>`, `<body>` を含む全体構造
+    - 共通の `<header>`, `<footer>` を配置
+    - `<slot />` で各ページ固有の中身を受け取る
+  - 例：`src/layouts/BaseLayout.astro` にグローバルヘッダー・フッター・コンテナなどをまとめる
+
+## CSS の読み込みルール
+
+- グローバル CSS のエントリーポイントは `src/styles/style.css` とする
+- `style.css` から、各階層の `index.css` を `@import` していく（foundation / global / layout / components / products）
+- Astro ファイルでの `import` は **`BaseLayout.astro` のみ** で行う
+
+### BaseLayout での読み込み例
+
+```astro
+---
+// src/layouts/BaseLayout.astro
+import '../styles/style.css';
+
+const { title } = Astro.props;
+import Header from '../blocks/Header.astro';
+import Footer from '../blocks/Footer.astro';
+---
+
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>{title}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body class="l-body">
+    <header class="l-header">
+      <Header />
+    </header>
+
+    <main class="l-main">
+      <slot /> {/* 各ページのコンテンツ */}
+    </main>
+
+    <footer class="l-footer">
+      <Footer />
+    </footer>
+  </body>
+</html>
+
 ## JavaScript / インタラクションのルール
 
 - JS ファイルは `src/scripts` 配下に作成する
 - すべての初期化処理の入口は `src/scripts/main.js`
   - 新しい機能を追加する場合は `src/scripts/[機能名].js` に `initXxx()` を定義し、
     `main.js` から呼び出す
+````
