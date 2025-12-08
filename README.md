@@ -42,6 +42,9 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 - **命名**: 役割 → ブロック → 要素 → 修飾の順で判断
 - **変更提案**: 理由を 1 行添えること
 - **タイポグラフィ・カラー**: Base を正とし、コンポーネント内で必要な差分のみ上書き
+-  **複数の解決策がある場合は選択肢を示す**
+-  **アクセシビリティ違反は絶対に提案しない**
+-  **レイアウトサイズは`max-width`+`margin: auto`パターンを優先**
 
 ## 3. Non-Negotiable Rules (変更不可)
 
@@ -55,21 +58,23 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 
 - **FLOCSS + BEM**: クラス命名は接頭辞で役割明示
 - **ネスト禁止**: 検索性と影響範囲の明確化のため
-- **余白のトークン化**: `var(--sp-*)`のみ使用、`px`の直接指定は禁止
 - **スライダー**: Splide を使用（`@splidejs/splide`を優先）
 
-### アクセシビリティ
-
-- **`:focus-visible`の保持**: フォーカスインジケーターは絶対に削除しない
-- **セマンティック HTML 優先**: 適切な HTML 要素が使える場合は ARIA 属性は不要
 
 ## 4. CSS Architecture
+
+### CSS 変数の使用方針
+
+- **カラー**: `var(--color-primary)` など、カラートークンは変数化する（`src/styles/global/variables.css`）
+- **フォントサイズ**: `var(--font-size-base)` は使用するが、個別のサイズは `fz()` 関数で fluid に指定
+- **余白・サイズ**: デザインが変数管理されていないため、基本的に直接指定でよい
+  - 例外：頻出する値（コンテナ幅 `1120px` など）は変数化を検討してもよい
 
 ### Layout Sizing（幅・高さのルール）
 
 - レイアウトの「器」（`.l-*`）では、基本的に **`width` は `%` or `auto`、`max-width` で制御する**
   - 悪い例：`width: 1200px;`
-  - 良い例：`max-width: 1120px; margin-inline: auto; padding-inline: var(--sp-lg);`
+  - 良い例：`max-width: 1120px; margin-inline: auto; padding-inline: 12px;`
 
 - コンテンツの横並びは、**固定幅ではなく Grid / Flex の自動調整を優先する**
   - 例：カードリスト
@@ -78,7 +83,6 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
     .c-card-list {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: var(--sp-lg);
     }
     ```
 
@@ -116,7 +120,6 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
     - ページ全体の上下配置・幅・背景色などの「枠」を定義する
     - 1 カラム / 2 カラムレイアウト、sticky header など構造レベルのレイアウト
   - 注意：
-    - `.l-*` の中には、ボタン色・フォントサイズなど「コンポーネント固有の見た目」は書かない
 
 - `.c-*` は **再利用可能な UI コンポーネント**
   - 例：
@@ -211,6 +214,7 @@ dist 後は assetsPrefix(CDN_URL) が効く
 
 - **セマンティック HTML 優先**: 適切な HTML 要素（`<button>`, `<nav>`, `<main>`など）が使える場合は ARIA 属性は不要
 - **ARIA は補完的に使用**: セマンティック HTML だけでは表現できない場合のみ使用
+- **`:focus-visible`の保持**: フォーカスインジケーターは絶対に削除しない
 - **`aria-label`**: 要素に可視テキストがない場合、または可視テキストが不十分な場合に使用
   - 例：アイコンボタン `<button aria-label="閉じる">×</button>`
 - **`aria-labelledby`**: 他の要素の ID を参照してラベルを指定
@@ -279,10 +283,10 @@ src/
   assets/
     images/            # 画像ファイル（必ずここから import して使う）
 
-  pages/               # ページ本体（Astro標準）
-    index.astro        # TOPページ
+  pages/                # セクションを並べるだけ
+    index.astro
 
-  layouts/             # レイアウト（HeaderやFooter など）
+  layouts/             # html/head/bodyの骨組み
 
   sections/            # ページ内セクション（Hero, Features, FAQ などのまとまり）
                        # 例：SectionHero.astro, SectionFeatureList.astro
@@ -317,35 +321,69 @@ src/
     products/          # .p-* の商品・ページ固有スタイル
       index.css        # ページ／プロダクト固有のスタイルをここに集約
 
-### Astro: pages と layouts の使い分け
+## Astro: pages と layouts の使い分け
 
-- `src/pages/`
-  - 各 URL に対応する「ページ本体」を定義する場所。
-  - 役割：
-    - どの Layout (`BaseLayout` など) を使うか決める
-    - どの Section コンポーネントを並べるか決める
-    - ページ固有の `<title>` や `<meta>` を指定する
-  - 例：`src/pages/index.astro` で Top ページのセクション構成を定義する
+### `src/pages/`
+- 各 URL に対応する「ページ本体」を定義する場所。
+- 役割：
+  - どの Layout を使うか決める
+  - どの Section コンポーネントを並べるか決める
+  - ページ固有の `<title>` を指定する（propsで渡す）
+- 例：`src/pages/index.astro` で Top ページのセクション構成を定義する
+```astro
+// src/pages/index.astro
+<Layout title='森半の敬老の日'>
+  <Hero />
+  <Gift />
+</Layout>
+```
 
-- `src/layouts/`
-  - 複数ページで共通する「外枠（レイアウトテンプレート）」を定義する場所。
-  - 役割：
-    - `<html>`, `<head>`, `<body>` を含む全体構造
-    - 共通の `<header>`, `<footer>` を配置
-    - `<slot />` で各ページ固有の中身を受け取る
-  - 例：`src/layouts/BaseLayout.astro` にグローバルヘッダー・フッター・コンテナなどをまとめる
+**重要**: `<html>`や`<head>`は書かない。すべてLayoutに任せる。
+
+---
+
+### `src/layouts/`
+- 複数ページで共通する「外枠（レイアウトテンプレート）」を定義する場所。
+- 役割：
+  - `<html>`, `<head>`, `<body>` を含む全体構造
+  - CSS/JSの読み込み
+  - 全ページ共通のFooterを配置
+  - `<slot />` で各ページ固有の中身を受け取る
+- 例：`src/layouts/Layout.astro` に全体構造とFooterをまとめる
+```astro
+// src/layouts/Layout.astro
+<!DOCTYPE html>
+<html lang='ja'>
+  <head>
+    <title>{title}</title>
+  </head>
+  <body>
+    <main>
+      <slot />  {/* pages/のコンテンツ */}
+    </main>
+    <Footer />
+  </body>
+</html>
+```
+
+---
+
+### このプロジェクトでの具体例
+
+- **Footer**: `layouts/Footer.astro`（全LP共通なのでlayoutsに配置）
+- **Hero, Gift等**: `sections/`（このLP専用なのでsectionsに配置）
+
 
 ## CSS の読み込みルール
 
 - グローバル CSS のエントリーポイントは `src/styles/style.css` とする
 - `style.css` から、各階層の `index.css` を `@import` していく（foundation / global / layout / components / products）
-- Astro ファイルでの `import` は **`BaseLayout.astro` のみ** で行う
 
-### BaseLayout での読み込み例
+### Layout での読み込み例
 
 ```astro
 ---
-// src/layouts/BaseLayout.astro
+// src/layouts/Layout.astro
 import '../styles/style.css';
 
 const { title } = Astro.props;
@@ -360,17 +398,11 @@ import Footer from '../blocks/Footer.astro';
     <meta name="viewport" content="width=device-width, initial-scale=1" />
   </head>
   <body class="l-body">
-    <header class="l-header">
       <Header />
-    </header>
-
     <main class="l-main">
       <slot /> {/* 各ページのコンテンツ */}
     </main>
-
-    <footer class="l-footer">
       <Footer />
-    </footer>
   </body>
 </html>
 
