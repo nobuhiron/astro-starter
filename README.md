@@ -65,6 +65,48 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 
 ## 4. CSS Architecture
 
+### Layout Sizing（幅・高さのルール）
+
+- レイアウトの「器」（`.l-*`）では、基本的に **`width` は `%` or `auto`、`max-width` で制御する**
+  - 悪い例：`width: 1200px;`
+  - 良い例：`max-width: 1120px; margin-inline: auto; padding-inline: var(--sp-lg);`
+
+- コンテンツの横並びは、**固定幅ではなく Grid / Flex の自動調整を優先する**
+  - 例：カードリスト
+
+    ```css
+    .c-card-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: var(--sp-lg);
+    }
+    ```
+
+- 画像やカードに対しては、**基本は `width: 100%` / `max-width` を使い、固定 `width` は最小限**
+  - 例：
+
+    ```css
+    .c-product-card__image {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    ```
+
+- 固定 `px` での `width` / `height` 指定は **次のケースのみに限定する**
+  - アイコン・サムネイルなど、明確にサイズが決まっている小要素
+  - `min-width` や `min-height` としての下限値
+  - ボーダー・線の太さ（`1px`など）
+
+- レスポンシブなサイズ指定には `clamp()` / `min()` / `max()` を積極的に使ってよい
+  - 例：
+
+    ```css
+    .c-hero-title {
+      font-size: clamp(2rem, 3vw, 2.6rem);
+    }
+    ```
+
 ### Layout と Component の使い分け（header / footer を含む）
 
 - `.l-*` は **ページ全体の骨組み（レイアウト）専用クラス**
