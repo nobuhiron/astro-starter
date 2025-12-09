@@ -36,16 +36,11 @@ button:focus-visible,
   outline: 2px solid var(--color-main);
 }
 img {
-  width: 100%;
   max-width: 100%;
   height: auto;
-  object-fit: cover;
-  vertical-align: top;
   display: block;
 }
 
 #contents-area {
   padding-bottom: 0;
 }
-
-

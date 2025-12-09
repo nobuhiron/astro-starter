@@ -27,7 +27,7 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 
 ## 1. Goal (Outcome)
 
-このプロジェクトは **ブランド体験と世界観を重視した EC / LP** を制作する。
+このプロジェクトは **ブランド体験と世界観、さらにアクセシビリティやCore Web Vitalsを重視した EC / LP** を制作する。
 **速さより一貫性**、**統一感のある余白とタイポ**、**落ち着いた色設計**を優先する。
 
 ## 2. Cursor Instruction Block（最重要）
@@ -44,6 +44,7 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 - **タイポグラフィ・カラー**: Base を正とし、コンポーネント内で必要な差分のみ上書き
 -  **複数の解決策がある場合は選択肢を示す**
 -  **アクセシビリティ違反は絶対に提案しない**
+-  **Core Web Vitals**を重視する
 -  **レイアウトサイズは`max-width`+`margin: auto`パターンを優先**
 
 ## 3. Non-Negotiable Rules (変更不可)
@@ -200,6 +201,8 @@ dist 後は assetsPrefix(CDN_URL) が効く
 ### 禁止事項
 
 - **`object-fit: cover`の乱用**: アスペクト比が重要な画像では使用を避ける
+-**`object-fit: cover`** はカードサムネなど、意図してトリミングしたい画像にだけ適用する
+デフォルトの img には指定しない
 - **固定サイズ**: レスポンシブ対応を優先し、固定`width/height`の直接指定は避ける
 - **装飾画像の`<img>`使用**: 情報を持たない装飾は必ず CSS 背景画像に
 
@@ -276,6 +279,23 @@ dist 後は assetsPrefix(CDN_URL) が効く
 - 再利用 UI コンポーネントは `src/components/` 配下に役割ベースで命名してください。
 - 新しい JS の機能は `src/scripts/[機能名].js` に `initXxx()` 関数を定義し、`main.js` から呼び出してください。
 
+## 8. Performance / Core Web Vitals
+
+このプロジェクトでは、以下の Core Web Vitals を「良好」判定を目標とする。
+
+- **LCP（Largest Contentful Paint）**
+  - ヒーロー画像や主要ビジュアルは Astro の `Image` コンポーネントを使い、適切なサイズとフォーマット（WebP/AVIF）で提供する
+  - Above the fold に不要な JS を置かない（アニメーション・リッチなUIはできるだけ遅延）
+
+- **CLS（Cumulative Layout Shift）**
+  - 画像には必ず `width` / `height` を指定し、アスペクト比を固定する
+  - 遅延読み込み要素がレイアウトを押し下げないように設計する
+  - フォント切り替えによる大きなレイアウトシフトを避ける（必要なら `font-display` を調整）
+
+- **INP（Interaction to Next Paint）**
+  - JS の初期化は `main.js` から最小限だけ行い、重い処理はユーザー操作後 or 遅延実行する
+  - アニメーションやインタラクションは CSS で表現できるものを優先し、不要なライブラリは追加しない
+  - 新しいスクリプトやサードパーティタグを追加する場合は、パフォーマンスへの影響を確認してから導入する
 ## ディレクトリ構成（このプロジェクトの実体）
 
 ````txt
