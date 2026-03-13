@@ -1,7 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { SITE } from '../config/site';
 ---
 
-<Layout title='森半 tea&coffee'>
-  <h1>Astro</h1>
+<Layout title={SITE.defaultTitle} description={SITE.defaultDescription}>
+  <h1>MakeShop LP Template</h1>
 </Layout>

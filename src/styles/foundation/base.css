@@ -18,7 +18,7 @@ body {
 
 main {
   /*本来はbodyで書く内容だが、makeshop用の特別な対応 共通headerのcolorに影響が出るため。*/
-  color: var(--color-black);
+  color: var(--color-text);
   font-family: var(--font-jp--serif);
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);

@@ -1,85 +1,29 @@
 /* -------------------
-   Color Palette
+   Project Editable Tokens
+   Edit this section for each project
 ------------------- */
 :root {
   /* Base Colors */
-  --color-white: #fff;
-  --color-black: #333;
-  --color-light-beige: #efe5d1;
-  --color-beige: #d4b987;
-  --color-deep-beige: #8e6e33;
-  --color-brown: #6a3c0a;
-  --color-dark-brown: #563d0d;
-  --color-gold: #bf9c35;
-  --color-red: #af2304;
-  --color-dim-red: #b93728;
-  --color-dim-red2: #c2584a;
-  --color-pink: #e18e72;
-  --color-purple: #bca8d2;
-  --color-green: #75a046;
-  --color-deep-green: #4e530f;
-  --color-gray: #797979;
-  --color-light-gray: #f6f5f2;
-  --color-pale-pink: #f2b9bb;
-  --color-pale-orange: #f2c5b5;
-  --color-pale-yellow: #f7e19f;
-  --color-pale-green: #c7e6b3;
+  --base-main: #6a3c0a;
+  --base-accent: #c2584a;
+  --base-sub: #bf9c35;
+  --base-text: #333;
+  --base-bg: #efe5d1;
+  --base-surface: #f6f5f2;
 
-  /* Semantic Colors */
-  --color-text: var(--color-black);
-  --color-bg: var(--color-light-beige);
-  --color-main: var(--color-brown);
-  --color-accent: var(--color-deep-pink);
-  --color-accent2: var(--color-dim-red2);
-  --color-sub: var(--color-gold);
-  --color-sub2: var(--color-green);
-  --color-sub3: var(--color-pink);
-  --color-sub4: var(--color-purple);
-  --color-sub5: var(--color-dim-red);
-  --color-sub6: var(--color-gray);
-  --color-qa-header: var(--color-beige);
-  --color-waffle-title: var(--color-deep-green);
-  --color-item-card-price: var(--color-dark-brown);
-  --color-tips-header1: var(--color-pale-pink);
-  --color-tips-header2: var(--color-pale-orange);
-  --color-tips-header3: var(--color-pale-yellow);
-  --color-tips-header4: var(--color-pale-green);
-  --color-contents-bg: var(--color-light-gray);
-}
+  /* Project Font Sources */
+  --font-source-jp-serif: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --font-source-jp-sans: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  --font-source-en: 'Metal', 'Georgia', serif;
+  --font-source-en-decor: 'Alex Brush', 'Times New Roman', cursive;
 
-/* -------------------
-   Typography
-------------------- */
-:root {
-  --font-jp--serif: 'Noto Serif JP', 'Georgia', 'Times New Roman', serif;
-  --font-jp--sanserif: 'Noto Sans JP', 'Helvetica', 'Arial', sans-serif;
-  --font-en: 'Metal', sans-serif;
-  --font-en--decor: 'Alex Brush', sans-serif;
-
-  --fw-regular: 400;
-  --fw-medium: 500;
-  --fw-semibold: 600;
-  --fw-bold: 700;
-
-  /* 16px ~ 18px のfluid指定 (SCSSのfz関数相当) */
-  --font-size-base: clamp(16px, 1.6vw, 18px);
-  --line-height-base: 1.62;
-}
-
-/* -------------------
-   Layout
-------------------- */
-:root {
+  /* Layout */
   --layout-max-width: 1440px;
   --layout-max-width-inner: 1100px;
   --layout-padding-sp: 20px;
   --layout-padding-pc: 50px;
-}
 
-/* -------------------
-   Spacing
-------------------- */
-:root {
+  /* Spacing */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
@@ -89,14 +33,38 @@
   --spacing-3xl: 48px;
   --spacing-4xl: 64px;
   --spacing-5xl: 96px;
-}
-/* -------------------
-   radius
-------------------- */
-:root {
+
+  /* Radius */
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 16px;
   --radius-lg: 24px;
   --radius-xl: 50%;
+
+  /* Typography */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --font-size-base: clamp(16px, 1.6vw, 18px);
+  --line-height-base: 1.62;
+}
+
+/* -------------------
+   Semantic Tokens
+   Use this small set in implementation
+------------------- */
+:root {
+  --color-text: var(--base-text);
+  --color-bg: var(--base-bg);
+  --color-surface: var(--base-surface);
+  --color-main: var(--base-main);
+  --color-accent: var(--base-accent);
+  --color-sub: var(--base-sub);
+
+  /* Font Aliases */
+  --font-jp--serif: var(--font-source-jp-serif);
+  --font-jp--sanserif: var(--font-source-jp-sans);
+  --font-en: var(--font-source-en);
+  --font-en--decor: var(--font-source-en-decor);
 }
