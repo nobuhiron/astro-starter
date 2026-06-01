@@ -20,6 +20,8 @@
   /* Layout */
   --layout-max-width: 1440px;
   --layout-max-width-inner: 1100px;
+  /* SP 本体（中央固定列）の幅。カンプ幅に合わせる。既定 375px */
+  --layout-main-width: 375px;
   --layout-padding-sp: 20px;
   --layout-padding-pc: 50px;
 

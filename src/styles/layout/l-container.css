@@ -1,15 +1,16 @@
 @import '../global/variables.css';
 
+/* セクション内コンテンツの器。本体は SP 幅(--layout-main-width)の固定列。 */
 .l-container {
-  width: 100%;
+  width: min(100%, var(--layout-main-width));
   max-width: 100%;
-  padding-inline: var(--layout-padding-sp);
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  @media (--lg) {
-    max-width: var(--layout-max-width);
-    padding-inline: var(--layout-padding-pc);
-  }
+  display: grid;
+}
 
+/* 縦向きスマホでは画面幅に追従 */
+@media (max-width: 767px) and (orientation: portrait) {
+  .l-container {
+    width: 100%;
+  }
 }

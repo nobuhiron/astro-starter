@@ -1,6 +1,8 @@
 ---
 import '../styles/style.css';
 import { FONT_LINKS, SITE } from '../config/site';
+import PageChromeLeft from '../components/PageChromeLeft.astro';
+import PageChromeRight from '../components/PageChromeRight.astro';
 
 interface Props {
   title?: string;
@@ -64,9 +66,20 @@ const twitterCard = ogImageUrl ? 'summary_large_image' : 'summary';
     {ogImageUrl && <meta name='twitter:image' content={ogImageUrl} />}
     <title>{title}</title>
   </head>
-  <body>
-    <main>
-      <slot />
-    </main>
+  <body class='l-page'>
+    <div class='l-page__bg' aria-hidden='true'></div>
+    <div class='l-shell'>
+      <aside class='l-shell__aside l-shell__aside--left'>
+        <PageChromeLeft />
+      </aside>
+      <div class='l-shell__main'>
+        <main id='main-content' class='l-main-column'>
+          <slot />
+        </main>
+      </div>
+      <aside class='l-shell__aside l-shell__aside--right'>
+        <PageChromeRight />
+      </aside>
+    </div>
   </body>
 </html>

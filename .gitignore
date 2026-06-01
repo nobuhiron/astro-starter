@@ -1,5 +1,7 @@
 # build output
 dist/
+# visual-diff scratch output (scripts/)
+tmp/
 # generated types
 .astro/
 

@@ -1,0 +1,22 @@
+/* -------------------------------------------------------------
+   c-page-chrome — PC 時に左右カラムへ出す chrome の枠。
+   位置取り(sticky/中央寄せ)は l-shell__aside 側が担当。
+   ここは中身の最大幅と余白だけ。中身は案件ごとに PageChrome* で実装する。
+------------------------------------------------------------- */
+
+.c-page-chrome {
+  width: 100%;
+  max-width: 320px;
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.c-page-chrome--left {
+  align-items: flex-start;
+}
+
+.c-page-chrome--right {
+  align-items: stretch;
+}

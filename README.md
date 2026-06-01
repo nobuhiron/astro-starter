@@ -151,6 +151,41 @@ src/
     components/
 ```
 
+## レイアウトの骨格（SP本体＋PC左右chrome）
+
+このテンプレートは「**スマホ幅の中央 1 列が本体**、PC では左右に chrome（メニュー等）を出す」構成を既定にしています。コンテンツの中身は案件ごとに変わる前提で、骨格とトークンだけを用意しています。
+
+- 本体幅は `--layout-main-width`（既定 `375px`、カンプ幅に合わせる）。
+- `src/styles/layout/l-shell.css`
+  - SP: 中央 1 列（`.l-main-column` が `max-width: var(--layout-main-width)`）。
+  - PC(`--lg`): `grid-template-columns: minmax(0,1fr) var(--layout-main-width) minmax(0,1fr)` で左右に chrome。
+- `src/components/PageChromeLeft.astro` / `PageChromeRight.astro`
+  - PC 左右カラムの中身。**空のスケルトン**なので、案件ごとに（ロゴ / ページタイトル / 補助ナビ / LINE 登録など）を実装する。
+- `.l-container` はセクション内コンテンツの器（`width: min(100%, var(--layout-main-width))`）。
+
+> 構成が違う案件では、`Layout.astro` の `l-shell` を使わずに組むこともできます。`--layout-main-width` を変えれば本体幅だけ差し替えできます。
+
+## ビジュアル差分スクリプト（任意・`scripts/`）
+
+支給画像（カンプ）どおりに作れているかを、Playwright スクショ × sharp 比較で確認するための補助スクリプトです。`sharp` / `playwright` は導入済み。
+
+| script | 役割 | 主な env |
+| :-- | :-- | :-- |
+| `crop-tiles.mjs` | 縦長の支給画像を高解像タイルに分割（文字を潰さず読む） | `SRC` `OUT_DIR` `TILE_H` `OVERLAP` |
+| `shoot.mjs` | dev を撮影（SP375/2x・アニメ無効、セクション or 全画面） | `OUT` `SELECTOR` `WIDTH` `CHANNEL` |
+| `compare.mjs` | デザイン画像と現状スクショを横並び合成（DESIGN｜CURRENT） | `DESIGN` `CURRENT` `OUT` |
+| `sample-colors.mjs` | 画像から代表色を抽出（トークン埋め） | `SRC` `POINTS` `PALETTE` |
+| `snapshot.mjs` | ARIA snapshot(YAML)＋computed/bbox(JSON)（文言・構造検証） | `SELECTOR` `OUT` `CHANNEL` |
+
+出力は `tmp/`（gitignore 済み）。`shoot` / `snapshot` のブラウザは、Windows なら `CHANNEL=msedge` でシステム Edge を使うのが手軽（`npx playwright install chromium` のダウンロードが不要）。
+
+```powershell
+# 例: ランキングセクションをカンプと比較
+$env:CHANNEL="msedge"
+$env:OUT="tmp/ranking.png"; $env:SELECTOR=".p-ranking"; node scripts/shoot.mjs
+$env:DESIGN="design/ranking.png"; $env:CURRENT="tmp/ranking.png"; $env:OUT="tmp/cmp.png"; node scripts/compare.mjs
+```
+
 ## 実装ルール
 
 実装ルールは README から分離しています。詳細は以下を参照してください。

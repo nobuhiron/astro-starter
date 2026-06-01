@@ -1,0 +1,79 @@
+/* -------------------------------------------------------------
+   l-shell — SP は中央固定列(--layout-main-width) 1 本、
+   PC(--lg) では 1fr / main / 1fr のグリッドにして左右に chrome を出す。
+   季節 LP 共通の骨格。左右 chrome の中身は案件ごとに PageChrome* で実装する。
+------------------------------------------------------------- */
+
+.l-page {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  isolation: isolate;
+}
+
+/* ページ全体の背景レイヤー（案件ごとに差し替える想定の薄いプレースホルダ）。
+   既定では何も描かない。必要なら background を上書きする。 */
+.l-page__bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.l-shell {
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+/* 左右 chrome は SP では非表示、PC でのみ表示 */
+.l-shell__aside {
+  display: none;
+}
+
+.l-shell__main {
+  width: 100%;
+}
+
+/* 本体の中央固定列 */
+.l-main-column {
+  width: 100%;
+  max-width: var(--layout-main-width);
+  margin-inline: auto;
+}
+
+@media (--lg) {
+  .l-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--layout-main-width) minmax(0, 1fr);
+    align-items: start;
+    gap: 0;
+  }
+
+  .l-shell__aside {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .l-shell__main {
+    min-width: 0;
+  }
+
+  /* グリッド内では中央カラムなので margin auto は不要 */
+  .l-main-column {
+    margin-inline: 0;
+  }
+}
+
+/* 縦向きスマホでは固定幅を解除して画面幅に追従させる */
+@media (max-width: 767px) and (orientation: portrait) {
+  .l-main-column {
+    max-width: none;
+  }
+}
