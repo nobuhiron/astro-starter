@@ -2,19 +2,18 @@ import { defineConfig } from 'astro/config';
 import { loadEnv } from 'vite';
 
 const env = loadEnv(process.env.NODE_ENV || 'production', process.cwd(), '');
+const cdnUrl = (process.env.PUBLIC_CDN_URL || env.PUBLIC_CDN_URL || '').replace(/\/$/, '');
 
 export default defineConfig({
+  // scripts/patch-dist-assets.mjs が成果物の HTML を書き換えるため、
+  // タグ間の空白を潰さない。
+  compressHTML: false,
   build: {
-    assetsPrefix: env.CDN_URL || process.env.CDN_URL || '',
+    assetsPrefix: cdnUrl,
   },
   image: { service: { entrypoint: 'astro/assets/services/sharp' } },
   vite: {
     build: {
-      // HTML はショップ本体、アセットは CDN に置くため常にクロスオリジンになる。
-      // gigaplus は Access-Control-Allow-Origin を返さないので、外部ファイル化された
-      // <script type="module"> は本番でブロックされる。JS は必ずインライン化する。
-      // 画像など他のアセットは null を返して既定（4096 バイト）のままにする。
-      assetsInlineLimit: (filePath) => (filePath.endsWith('.js') ? true : null),
       rollupOptions: {
         output: {
           assetFileNames: (info) =>
