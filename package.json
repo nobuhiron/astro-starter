@@ -4,11 +4,15 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/patch-dist-assets.mjs && node scripts/check-cors-safe.mjs",
+    "build": "astro build && node scripts/patch-dist-assets.mjs && node scripts/check-cors-safe.mjs && node scripts/check-html.mjs",
     "check": "astro check",
     "check:cors": "node scripts/check-cors-safe.mjs",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "check:css": "node scripts/check-css-order.mjs",
+    "check:html": "node scripts/check-html.mjs",
+    "check:copy": "node scripts/check-copy.mjs",
+    "drive": "node scripts/drive.mjs"
   },
   "dependencies": {
     "astro": "^5.15.4",
