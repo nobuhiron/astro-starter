@@ -17,6 +17,7 @@
 //   METRICS   computed/bbox を採取するセレクタを ',' 区切りで指定
 //             (未指定なら SELECTOR 配下の見出し/段落/ボタン/画像を自動採取)
 //   MAX       セレクタごとの採取上限 (既定 13)。超過時は truncated に打ち切りを報告
+//   CLICK     採取前にクリックするセレクタ(',' 区切り)。アコーディオンを開いた状態を採る用
 //   CHANNEL   "msedge"/"chrome" 等。指定するとそのシステムブラウザを使う(別途 install 不要)
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -37,6 +38,16 @@ const context = await browser.newContext({ viewport: { width: WIDTH, height: 160
 const page = await context.newPage();
 await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
 await page.waitForLoadState('load', { timeout: 60000 }).catch(() => {});
+
+// アコーディオン等を開いた状態で採取する
+const CLICK = process.env.CLICK || '';
+for (const sel of CLICK.split(',').map((s) => s.trim()).filter(Boolean)) {
+  const el = page.locator(sel).first();
+  if (!(await el.count())) { console.error('CLICK selector not found:', sel); await browser.close(); process.exit(1); }
+  await el.click();
+  await page.waitForTimeout(300);
+}
+
 await page.waitForTimeout(1000);
 
 const root = page.locator(SELECTOR).first();
@@ -78,8 +89,98 @@ const { metrics, truncated } = await page.evaluate(({ sels, max }) => {
   return { metrics: out, truncated };
 }, { sels: metricSel, max: MAX });
 
-await writeFile(OUT_JSON, JSON.stringify({ url: URL, selector: SELECTOR, width: WIDTH, truncated, metrics }, null, 2), 'utf8');
+// 3) RULES=1 のとき: 「宣言したのに効いていない px 値」を CDP で洗い出す。
+//    詳細度や @import 順の事故は、宣言値と計算値の食い違いという同じ形で現れる。
+//    例) .p-x{width:140px} が .swiper-slide{width:100%} に負けて計算値 335px になる。
+let lostDeclarations = [];
+if (process.env.RULES === '1') {
+  const AUDIT = [
+    'width', 'height', 'min-height', 'max-width',
+    'font-size', 'line-height',
+    'gap', 'row-gap', 'column-gap',
+    'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
+    'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
+  ];
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('DOM.enable');
+  await cdp.send('CSS.enable');
+  const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
+
+  for (const sel of metricSel) {
+    let nodeIds = [];
+    try {
+      ({ nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: sel }));
+    } catch {
+      continue; // CDP が解釈できないセレクタは飛ばす
+    }
+    for (const nodeId of nodeIds.slice(0, MAX)) {
+      let matched;
+      try {
+        matched = await cdp.send('CSS.getMatchedStylesForNode', { nodeId });
+      } catch {
+        continue;
+      }
+      const computed = Object.fromEntries(
+        (await cdp.send('CSS.getComputedStyleForNode', { nodeId })).computedStyle.map((p) => [p.name, p.value])
+      );
+
+      // 各ルールが宣言している「絶対 px 値」が計算値と食い違っていれば、それは負けている
+      for (const { rule } of matched.matchedCSSRules || []) {
+        const selectorText = rule.selectorList?.text || '?';
+        for (const prop of rule.style?.cssProperties || []) {
+          if (!AUDIT.includes(prop.name)) continue;
+          const declared = /^(-?[\d.]+)px$/.exec((prop.value || '').trim());
+          if (!declared) continue; // % や auto は計算値と直接比較できない
+          const actual = /^(-?[\d.]+)px$/.exec(computed[prop.name] || '');
+          if (!actual) continue;
+          if (Math.abs(Number(declared[1]) - Number(actual[1])) > 0.5) {
+            lostDeclarations.push({
+              element: sel,
+              property: prop.name,
+              declared: prop.value,
+              computed: computed[prop.name],
+              losingRule: selectorText,
+              winnerCandidates: (matched.matchedCSSRules || [])
+                .filter((r) => (r.rule.style?.cssProperties || []).some((p) => p.name === prop.name))
+                .map((r) => r.rule.selectorList?.text)
+                .filter((s) => s && s !== selectorText),
+            });
+          }
+        }
+      }
+    }
+  }
+  // 同じ (element, property, losingRule) は 1 件にまとめる
+  const seen = new Set();
+  lostDeclarations = lostDeclarations.filter((d) => {
+    const k = `${d.element}|${d.property}|${d.losingRule}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+await writeFile(
+  OUT_JSON,
+  JSON.stringify({ url: URL, selector: SELECTOR, width: WIDTH, truncated, lostDeclarations, metrics }, null, 2),
+  'utf8'
+);
 
 const note = truncated.length ? ` [truncated: ${truncated.map((t) => `${t.selector} ${t.kept}/${t.total}`).join(', ')}]` : '';
 console.log('Saved:', OUT, '(ARIA YAML) +', OUT_JSON, `(${metrics.length} elements)${note}`);
+
+if (process.env.RULES === '1') {
+  if (lostDeclarations.length === 0) {
+    console.log('[rules] OK: 宣言した px 値はすべて計算値と一致しています。');
+  } else {
+    console.log(`\n[rules] ${lostDeclarations.length} 件、宣言したのに効いていない指定があります:`);
+    for (const d of lostDeclarations) {
+      console.log(
+        `  ${d.losingRule} { ${d.property}: ${d.declared} }  →  実際は ${d.computed}\n` +
+          `      勝っている可能性のあるルール: ${d.winnerCandidates.join(' , ') || '(不明: @import 順や継承を確認)'}`
+      );
+    }
+  }
+}
+
 await browser.close();

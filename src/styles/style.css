@@ -1,5 +1,10 @@
+/* FLOCSS のカスケード順: foundation → layout → object(component → project)。
+   後に読むレイヤほど強い。component(c-*) より project(p-*) を後に読まないと、
+   `.c-placeholder { width: 100% }` のような component 側の指定が、
+   同詳細度の後勝ちで `p-*` の指定を打ち消してしまう。
+   検査: node scripts/check-css-order.mjs */
 @import './global/index.css';
 @import './foundation/index.css';
 @import './layout/index.css';
-@import './products/index.css';
 @import './components/index.css';
+@import './products/index.css';
