@@ -95,7 +95,12 @@ MakeShop 向け LP 制作用の Astro スターターです。
 
 ## 環境変数
 
-`.env.development` / `.env.production` を使用します。
+`.env.development` / `.env.production` を使用します。どちらも gitignore 済みなのでコミットしません。`.env.example` をコピーして作ってください。
+
+```powershell
+cp .env.example .env.development
+cp .env.example .env.production
+```
 
 - `PUBLIC_LINK_BASE`
   MakeShop の商品 URL ベース
