@@ -37,7 +37,7 @@
 
 - FLOCSS + BEM の考え方で整理する
 - 不要なネストは避ける
-- スライダーを導入する場合は Splide を優先する
+- スライダーを導入する場合は Swiper を使う（スクロールバー付きの横スクロールが必要なため）
 
 ## 4. CSS Architecture
 
@@ -217,33 +217,59 @@ Content-Type: application/javascript
 
 `pnpm dev` は同一オリジンなので、この事故はローカルで再現しない。**本番に上げて初めて壊れる。**
 
-### 対策1: JS は必ずインライン化する
+### いつ外部 module ファイルが生まれるか
 
-`astro.config.mjs` で `assetsInlineLimit` に関数を渡し、`.js` は常にインライン化している。これにより、Astro がバンドルした `<script>` は外部ファイルにならず、`import` もミニファイもそのまま使える。
-
-```js
-assetsInlineLimit: (filePath) => (filePath.endsWith('.js') ? true : null),
-```
-
-`null` を返した場合は既定（4096 バイト）にフォールバックするため、画像など他のアセットの挙動は変わらない。
-
-### 対策2: それでも外部化される場合がある
-
-Astro のインライン判定（`astro/dist/core/build/plugins/plugin-scripts.js`）は、サイズだけでなく次も条件にしている。
+Astro のインライン判定（`astro/dist/core/build/plugins/plugin-scripts.js`）はこうなっている。
 
 ```js
 output.imports.length === 0 && output.dynamicImports.length === 0 && shouldInlineAsset(...)
 ```
 
-つまり**動的 `import()` やチャンク分割が起きると、サイズに関係なく外部 module 化される**。これは `assetsInlineLimit` では防げない。だから動的 `import()` を使わない。
+つまり**ミニファイ後 4096 バイトを超える**か、**動的 `import()` / チャンク分割が起きる**と、バンドルは外部ファイルになり `<script type="module" src>` で読み込まれる。これが本番でブロックされる。
 
-### 対策3: ビルドで検査して止める
+### 対策1: type="module" を外してクラシックスクリプト化する
 
-`pnpm build` は `scripts/check-cors-safe.mjs` を実行し、成果物に上表の「不可」が混ざっていたら**ビルドを失敗させる**。事故を本番ではなくビルドで捕まえるための最後の砦。単独では `pnpm check:cors` で走る。
+`pnpm build` の第2段 `scripts/patch-dist-assets.mjs` が、外部 `<script>` から `type="module"` を落とす。クラシックスクリプトは CORS モードで取得されないため、CDN から問題なく実行できる。外部ファイルのままなので CDN キャッシュも効く。
+
+同スクリプトは、`assetsPrefix` が拾い漏らす `/_astro/` `/images/` 参照（インライン `style` 属性内の `url()` など、HTML エスケープされた箇所）も CDN 化する。この書き換えのため `astro.config.mjs` で `compressHTML: false` にしている。
+
+`src` 無しのインライン module は同一 HTML 内なのでそのまま残す。
+
+### 対策2: 前提が崩れていないか検査する
+
+対策1は「バンドルが `import` / `export` / `import.meta` を持たない自己完結なコード」であることが前提。動的 `import()` やチャンク分割が起きるとバンドルに `import` 文が残り、`type` を外したクラシックスクリプトは**構文エラーで静かに死ぬ**。
+
+`pnpm build` の第3段 `scripts/check-cors-safe.mjs` が、次を検査してビルドを落とす。単独では `pnpm check:cors` で走る。
+
+- `<script type="module" src>` が残っていないか
+- クラシック化されたバンドルに `import` / `export` / `import.meta` が残っていないか
+- `<link rel="modulepreload">`
+- `@font-face` の `url(https://...)`
+
+**したがって実装側の制約はひとつ。動的 `import()` を使わないこと。**
+
+### public/ のファイルは publicAssetPath() を通す
+
+`assetsPrefix` は `src/` 由来のバンドル済みアセットにしか適用されない。`public/` のファイルは絶対パスのまま出力されるため、HTML をショップ本体に置く構成ではショップのルートを指して 404 になる。
+
+```astro
+---
+import { publicAssetPath } from '../utils/assets';
+---
+<link rel='icon' href={publicAssetPath('/favicon.svg')} />
+```
 
 ### 外部ライブラリの読み込み
 
-Swiper など重い外部ライブラリは、インライン化すると HTML が肥大するため、**クラシックスクリプトとして CDN から読む**。`type` を付けなければ CORS は発生しない。
+Swiper のような外部ライブラリは、npm から入れて通常どおり `import` してよい。バンドルは外部ファイルになるが、対策1 がクラシックスクリプト化するので CORS は発生せず、CDN キャッシュも効く。
+
+```js
+// src/scripts/carousels.js
+import Swiper from 'swiper';
+import { FreeMode, Scrollbar } from 'swiper/modules';
+```
+
+すでに CDN 上に置かれた配布物を直接読みたい場合は、`is:inline` でクラシックスクリプトとして読む。`type` を付けなければ CORS は発生しない。
 
 ```astro
 <script is:inline src="https://gigaplus.makeshop.jp/morihan1836/assets/js/swiper.min.js"></script>

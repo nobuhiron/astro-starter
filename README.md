@@ -104,15 +104,15 @@ cp .env.example .env.production
 
 - `PUBLIC_LINK_BASE`
   MakeShop の商品 URL ベース
-- `CDN_URL`
-  `assetsPrefix` に渡す CDN パス
+- `PUBLIC_CDN_URL`
+  `assetsPrefix` に渡す CDN パス。`publicAssetPath()` がクライアント側から読むため `PUBLIC_` 接頭辞が必要
 
 ## コマンド
 
 | Command | 内容 |
 | :-- | :-- |
 | `pnpm dev` | 開発サーバー起動 |
-| `pnpm build` | 本番ビルド（＋クロスオリジン検査） |
+| `pnpm build` | 本番ビルド（＋CDN 書き換え＋クロスオリジン検査） |
 | `pnpm preview` | ビルド結果確認 |
 | `pnpm check` | Astro の型チェック |
 | `pnpm check:cors` | 成果物のクロスオリジン検査のみ実行 |
@@ -126,16 +126,22 @@ HTML はショップ本体、アセットは CDN（gigaplus）に置くため、
 - `@font-face` の `url()` … **不可**
 - `<script src>`（`type` 無し）、`<link rel="stylesheet">`、画像 … 可
 
-`pnpm dev` は同一オリジンのため**ローカルでは再現しません**。対策は3層です。
+`pnpm dev` は同一オリジンのため**ローカルでは再現しません**。`pnpm build` が2段構えで面倒を見ます。
 
-1. `astro.config.mjs` の `assetsInlineLimit` で `.js` を常にインライン化する
-2. 動的 `import()` を使わない（サイズに関係なく外部 module 化されるため）
-3. `pnpm build` が `scripts/check-cors-safe.mjs` で成果物を検査し、違反があればビルドを落とす
+1. `scripts/patch-dist-assets.mjs`
+   外部 `<script>` から `type="module"` を外してクラシックスクリプト化します（CORS 不要）。`assetsPrefix` が拾い漏らす `/_astro/` `/images/` 参照も CDN 化します。
+2. `scripts/check-cors-safe.mjs`
+   上のクラシック化は「バンドルが `import` / `export` / `import.meta` を持たない自己完結なコード」であることが前提です。動的 `import()` やチャンク分割でその前提が崩れると、classic スクリプトは構文エラーで**静かに死にます**。この検査がそれを見つけてビルドを落とします。
 
-Swiper のような重い外部ライブラリは、クラシックスクリプトとして CDN から読みます。
+つまり実装側の制約はひとつだけです。**動的 `import()` を使わないこと。**
+
+`public/` に置いたファイルは `assetsPrefix` の対象外です。CDN を向かせるには `publicAssetPath()` を通します。
 
 ```astro
-<script is:inline src="https://gigaplus.makeshop.jp/.../swiper.min.js"></script>
+---
+import { publicAssetPath } from '../utils/assets';
+---
+<link rel='icon' href={publicAssetPath('/favicon.svg')} />
 ```
 
 詳細は [docs/coding-rules.md](docs/coding-rules.md) の「クロスオリジン制約」を参照してください。

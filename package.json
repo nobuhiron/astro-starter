@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/check-cors-safe.mjs",
+    "build": "astro build && node scripts/patch-dist-assets.mjs && node scripts/check-cors-safe.mjs",
     "check": "astro check",
     "check:cors": "node scripts/check-cors-safe.mjs",
     "preview": "astro preview",
@@ -15,6 +15,7 @@
     "sharp": "^0.34.5"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.9",
     "@csstools/postcss-global-data": "^3.1.0",
     "autoprefixer": "^10.4.21",
     "playwright": "^1.59.1",
@@ -22,6 +23,7 @@
     "postcss-custom-media": "^11.0.6",
     "postcss-import": "^16.1.1",
     "postcss-preset-env": "^10.4.0",
+    "typescript": "^6.0.3",
     "vite": "^6.4.1"
   }
 }
