@@ -18,6 +18,7 @@
     "@astrojs/check": "^0.9.9",
     "@csstools/postcss-global-data": "^3.1.0",
     "autoprefixer": "^10.4.21",
+    "parse5": "^8.0.1",
     "playwright": "^1.59.1",
     "postcss": "^8.5.6",
     "postcss-custom-media": "^11.0.6",

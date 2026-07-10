@@ -14,6 +14,7 @@
 //   FULL      "1" でフルページ撮影 (SELECTOR 未指定時の既定挙動)
 //   SCALE     deviceScaleFactor (既定 2)
 //   WAIT      追加待機 ms (既定 1200)
+//   CLICK     撮影前にクリックするセレクタ(',' 区切りで複数可)。アコーディオンを開いた状態を撮る用
 //   CHANNEL   "msedge"/"chrome" 等。指定するとそのシステムブラウザを使う
 //             (Playwright 管理の chromium を別途 install せずに済む / Windows は msedge が常設)
 import path from 'node:path';
@@ -50,6 +51,16 @@ await page.evaluate(async () => {
   await delay(200);
   scrollTo(0, 0);
 });
+
+// アコーディオン等を開いた状態で撮る
+const CLICK = process.env.CLICK || '';
+for (const sel of CLICK.split(',').map((s) => s.trim()).filter(Boolean)) {
+  const el = page.locator(sel).first();
+  if (!(await el.count())) { console.error('CLICK selector not found:', sel); await browser.close(); process.exit(1); }
+  await el.click();
+  await page.waitForTimeout(300);
+}
+
 await page.waitForTimeout(WAIT);
 
 if (SELECTOR) {
