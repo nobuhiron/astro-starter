@@ -43,7 +43,7 @@
 
 ### Color Tokens
 
-色は [variables.css](/C:/Users/kyoei139/astro-starter/src/styles/global/variables.css) で管理する。
+色は [variables.css](../src/styles/global/variables.css) で管理する。
 
 案件ごとに主に編集するのは上部の `--base-*` で、初期状態では次の 6 色を使う。
 
@@ -188,3 +188,67 @@ src/
 - JS ファイルは `src/scripts` 配下に作る
 - 初期化の入口は `src/scripts/main.js`
 - 新しい機能は `src/scripts/[feature].js` に分け、`src/scripts/main.js` から呼び出す
+- 動的 `import()` は使わない（次章の理由による）
+
+## 13. クロスオリジン制約
+
+MakeShop では HTML をショップ本体（例: `www.tea-and-coffee.shop`）に置き、アセットを CDN（`gigaplus.makeshop.jp`）に置く。両者は**常にクロスオリジン**になる。
+
+そして gigaplus は `Access-Control-Allow-Origin` を返さない。
+
+```
+$ curl -I -H "Origin: https://www.tea-and-coffee.shop" \
+    https://gigaplus.makeshop.jp/morihan1836/assets/js/swiper.min.js
+HTTP/1.1 200 OK
+Content-Type: application/javascript
+（Access-Control-Allow-Origin なし）
+```
+
+そのため、**CORS モードで取得されるリソースはすべてブラウザにブロックされる**。
+
+| 取得方法 | CORS | CDN から読めるか |
+| :-- | :-- | :-- |
+| `<script type="module" src>` | 必要 | **不可** |
+| `<link rel="modulepreload">` | 必要 | **不可** |
+| `@font-face` の `url()` | 必要 | **不可** |
+| `<script src>`（`type` 無し） | 不要 | 可 |
+| `<link rel="stylesheet">` | 不要 | 可 |
+| `<img>`, `background-image` | 不要 | 可 |
+
+`pnpm dev` は同一オリジンなので、この事故はローカルで再現しない。**本番に上げて初めて壊れる。**
+
+### 対策1: JS は必ずインライン化する
+
+`astro.config.mjs` で `assetsInlineLimit` に関数を渡し、`.js` は常にインライン化している。これにより、Astro がバンドルした `<script>` は外部ファイルにならず、`import` もミニファイもそのまま使える。
+
+```js
+assetsInlineLimit: (filePath) => (filePath.endsWith('.js') ? true : null),
+```
+
+`null` を返した場合は既定（4096 バイト）にフォールバックするため、画像など他のアセットの挙動は変わらない。
+
+### 対策2: それでも外部化される場合がある
+
+Astro のインライン判定（`astro/dist/core/build/plugins/plugin-scripts.js`）は、サイズだけでなく次も条件にしている。
+
+```js
+output.imports.length === 0 && output.dynamicImports.length === 0 && shouldInlineAsset(...)
+```
+
+つまり**動的 `import()` やチャンク分割が起きると、サイズに関係なく外部 module 化される**。これは `assetsInlineLimit` では防げない。だから動的 `import()` を使わない。
+
+### 対策3: ビルドで検査して止める
+
+`pnpm build` は `scripts/check-cors-safe.mjs` を実行し、成果物に上表の「不可」が混ざっていたら**ビルドを失敗させる**。事故を本番ではなくビルドで捕まえるための最後の砦。単独では `pnpm check:cors` で走る。
+
+### 外部ライブラリの読み込み
+
+Swiper など重い外部ライブラリは、インライン化すると HTML が肥大するため、**クラシックスクリプトとして CDN から読む**。`type` を付けなければ CORS は発生しない。
+
+```astro
+<script is:inline src="https://gigaplus.makeshop.jp/morihan1836/assets/js/swiper.min.js"></script>
+```
+
+### フォント
+
+`@font-face` の取得は常に CORS モードなので、フォントを gigaplus に置くと読めない。Google Fonts は `Access-Control-Allow-Origin` を返すため利用できる。自前ホストに切り替える場合は、配信元が CORS ヘッダを返すか必ず確認する。

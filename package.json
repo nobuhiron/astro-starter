@@ -4,8 +4,9 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/check-cors-safe.mjs",
     "check": "astro check",
+    "check:cors": "node scripts/check-cors-safe.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
