@@ -16,7 +16,7 @@ MakeShop 向け LP 制作用の Astro スターターです。
 
 ### 1. `src/config/site.ts`
 
-[site.ts](/C:/Users/kyoei139/astro-starter/src/config/site.ts)
+[site.ts](src/config/site.ts)
 
 ここでは以下を管理します。
 
@@ -30,7 +30,7 @@ MakeShop 向け LP 制作用の Astro スターターです。
 
 ### 2. `src/styles/global/variables.css`
 
-[variables.css](/C:/Users/kyoei139/astro-starter/src/styles/global/variables.css)
+[variables.css](src/styles/global/variables.css)
 
 ここでは案件ごとのデザイントークンを管理します。
 
@@ -71,8 +71,8 @@ MakeShop 向け LP 制作用の Astro スターターです。
 
 フォントは次のように分けています。
 
-- 読み込み URL の設定: [site.ts](/C:/Users/kyoei139/astro-starter/src/config/site.ts)
-- フォント名の変数管理: [variables.css](/C:/Users/kyoei139/astro-starter/src/styles/global/variables.css)
+- 読み込み URL の設定: [site.ts](src/config/site.ts)
+- フォント名の変数管理: [variables.css](src/styles/global/variables.css)
 
 実装側では既存のフォント alias を使います。
 
@@ -83,7 +83,7 @@ MakeShop 向け LP 制作用の Astro スターターです。
 
 ## 共通 meta 設定
 
-[src/layouts/Layout.astro](/C:/Users/kyoei139/astro-starter/src/layouts/Layout.astro) は次の props を受け取れます。
+[src/layouts/Layout.astro](src/layouts/Layout.astro) は次の props を受け取れます。
 
 - `title`
 - `description`
@@ -95,7 +95,12 @@ MakeShop 向け LP 制作用の Astro スターターです。
 
 ## 環境変数
 
-`.env.development` / `.env.production` を使用します。
+`.env.development` / `.env.production` を使用します。どちらも gitignore 済みなのでコミットしません。`.env.example` をコピーして作ってください。
+
+```powershell
+cp .env.example .env.development
+cp .env.example .env.production
+```
 
 - `PUBLIC_LINK_BASE`
   MakeShop の商品 URL ベース
@@ -107,9 +112,33 @@ MakeShop 向け LP 制作用の Astro スターターです。
 | Command | 内容 |
 | :-- | :-- |
 | `pnpm dev` | 開発サーバー起動 |
-| `pnpm build` | 本番ビルド |
+| `pnpm build` | 本番ビルド（＋クロスオリジン検査） |
 | `pnpm preview` | ビルド結果確認 |
 | `pnpm check` | Astro の型チェック |
+| `pnpm check:cors` | 成果物のクロスオリジン検査のみ実行 |
+
+## クロスオリジン制約（重要）
+
+HTML はショップ本体、アセットは CDN（gigaplus）に置くため、両者は常にクロスオリジンです。gigaplus は `Access-Control-Allow-Origin` を返さないので、**CORS モードで取得されるリソースは本番でブロックされます**。
+
+- `<script type="module" src>` … **不可**
+- `<link rel="modulepreload">` … **不可**
+- `@font-face` の `url()` … **不可**
+- `<script src>`（`type` 無し）、`<link rel="stylesheet">`、画像 … 可
+
+`pnpm dev` は同一オリジンのため**ローカルでは再現しません**。対策は3層です。
+
+1. `astro.config.mjs` の `assetsInlineLimit` で `.js` を常にインライン化する
+2. 動的 `import()` を使わない（サイズに関係なく外部 module 化されるため）
+3. `pnpm build` が `scripts/check-cors-safe.mjs` で成果物を検査し、違反があればビルドを落とす
+
+Swiper のような重い外部ライブラリは、クラシックスクリプトとして CDN から読みます。
+
+```astro
+<script is:inline src="https://gigaplus.makeshop.jp/.../swiper.min.js"></script>
+```
+
+詳細は [docs/coding-rules.md](docs/coding-rules.md) の「クロスオリジン制約」を参照してください。
 
 ## PowerShell の文字化け対策
 
@@ -190,9 +219,9 @@ $env:DESIGN="design/ranking.png"; $env:CURRENT="tmp/ranking.png"; $env:OUT="tmp/
 
 実装ルールは README から分離しています。詳細は以下を参照してください。
 
-- [docs/coding-rules.md](/C:/Users/kyoei139/astro-starter/docs/coding-rules.md)
-- [docs/design-handoff-flow.md](/C:/Users/kyoei139/astro-starter/docs/design-handoff-flow.md)
-- [docs/prompt-templates.md](/C:/Users/kyoei139/astro-starter/docs/prompt-templates.md)
+- [docs/coding-rules.md](docs/coding-rules.md)
+- [docs/design-handoff-flow.md](docs/design-handoff-flow.md)
+- [docs/prompt-templates.md](docs/prompt-templates.md)
 
 ## 補足
 
