@@ -1,22 +1,26 @@
 // shoot.mjs — Playwright でビルド結果(dev サーバ)を撮影する。
-// SP 本体は --layout-main-width (既定 375px)。セクション単位 or 全画面で撮れる。
-// アニメ/トランジションは無効化してから撮影する。
+// SP 本体は 375px。セクション単位 or 全画面で撮れる。アニメ/トランジションは無効化。
 //
-// 使い方 (別ターミナルで pnpm dev 起動済み前提 / プロジェクトルートで実行):
-//   OUT=tmp/shot.png SELECTOR=".p-ranking" node scripts/shoot.mjs        (bash)
-//   $env:OUT="tmp/shot.png"; node scripts/shoot.mjs                      (PowerShell)
+// 使い方 (PowerShell, プロジェクト cwd で実行 / 別ターミナルで pnpm dev 起動済み前提):
+//   $env:NODE_PATH="$PWD\node_modules"
+//   $env:OUT="tmp/shot.png"; $env:SELECTOR=".p-ranking"
+//   node "C:/Users/kyoei266/.claude/skills/seasonal-lp/scripts/shoot.mjs"
 //
 // env:
 //   URL       既定 http://localhost:4321/
 //   OUT       出力 PNG (既定 tmp/shot.png)
-//   WIDTH     ビューポート幅 (既定 375 = SP本体幅)
+//   WIDTH     ビューポート幅 (既定 375 = カンプ幅)
 //   SELECTOR  指定時はその要素だけ clip。未指定なら全画面(FULL)
 //   FULL      "1" でフルページ撮影 (SELECTOR 未指定時の既定挙動)
 //   SCALE     deviceScaleFactor (既定 2)
 //   WAIT      追加待機 ms (既定 1200)
 //   CHANNEL   "msedge"/"chrome" 等。指定するとそのシステムブラウザを使う
-//             (Playwright 管理 chromium を別途 install せずに済む / Windows は msedge が常設)
-import { chromium } from 'playwright';
+//             (Playwright 管理の chromium を別途 install せずに済む / Windows は msedge が常設)
+import path from 'node:path';
+import { createRequire } from 'node:module';
+// 依存(playwright)は対象プロジェクト側に導入済み。cwd の node_modules から解決する。
+const require = createRequire(path.join(process.cwd(), 'package.json'));
+const { chromium } = require('playwright');
 
 const URL = process.env.URL || 'http://localhost:4321/';
 const OUT = process.env.OUT || 'tmp/shot.png';
@@ -25,8 +29,8 @@ const SELECTOR = process.env.SELECTOR || '';
 const FULL = process.env.FULL === '1' || !SELECTOR;
 const SCALE = Number(process.env.SCALE || 2);
 const WAIT = Number(process.env.WAIT || 1200);
-const CHANNEL = process.env.CHANNEL || '';
 
+const CHANNEL = process.env.CHANNEL || '';
 const browser = await chromium.launch(CHANNEL ? { channel: CHANNEL } : {});
 const context = await browser.newContext({
   viewport: { width: WIDTH, height: 1600 },
@@ -36,16 +40,25 @@ const page = await context.newPage();
 await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
 await page.waitForLoadState('load', { timeout: 60000 }).catch(() => {});
 await page.addStyleTag({ content: '*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important;}' });
+// loading="lazy" の画像はビューポート外キャプチャでは読み込まれないことがあるため、
+// 一度最下部までスクロールして全画像のロードを発火させてから先頭に戻す
+await page.evaluate(async () => {
+  const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+  const bottom = () => document.documentElement.scrollHeight - innerHeight;
+  for (let y = 0; y <= bottom(); y += 700) { scrollTo(0, y); await delay(60); }
+  scrollTo(0, bottom());
+  await delay(200);
+  scrollTo(0, 0);
+});
 await page.waitForTimeout(WAIT);
 
 if (SELECTOR) {
-  const target = await page.$(SELECTOR);
-  if (!target) { console.error('Selector not found:', SELECTOR); await browser.close(); process.exit(1); }
+  // locator.screenshot はスクロール・ビューポート超えのクリップを Playwright 側で面倒みてくれる
+  const target = page.locator(SELECTOR).first();
+  if (!(await target.count())) { console.error('Selector not found:', SELECTOR); await browser.close(); process.exit(1); }
   await target.scrollIntoViewIfNeeded();
   await page.waitForTimeout(500);
-  const box = await target.boundingBox();
-  if (!box) { console.error('No bounding box for', SELECTOR); await browser.close(); process.exit(1); }
-  await page.screenshot({ path: OUT, clip: { x: box.x, y: box.y, width: box.width, height: box.height } });
+  await target.screenshot({ path: OUT, animations: 'disabled' });
 } else {
   await page.screenshot({ path: OUT, fullPage: FULL });
 }

@@ -1,16 +1,22 @@
 // sample-colors.mjs — デザイン/コーディングルール画像から代表色を抽出する。
-// variables.css の Project Editable Tokens(base 色)を埋める材料にする。
+// variables.css の Project Editable Tokens(base 6色・palette・gradient)を埋める材料にする。
 //
-// 使い方 (プロジェクトルートで実行):
-//   SRC=design/coding-rule.png node scripts/sample-colors.mjs
+// 使い方 (PowerShell, プロジェクト cwd で実行):
+//   $env:NODE_PATH="$PWD\node_modules"
+//   $env:SRC="C:/Users/kyoei266/Downloads/コーディングルール.png"
+//   node "C:/Users/kyoei266/.claude/skills/seasonal-lp/scripts/sample-colors.mjs"
 //
 // env:
 //   SRC     入力画像 (必須)
 //   POINTS  "ラベル:xRatio,yRatio;..." で任意座標を指定 (比率 0..1)。
 //           未指定なら代表 9 点 (四隅+辺中央+中心) を自動サンプル。
 //   R       平均を取る半径 px (既定 6)
-//   PALETTE "1" で dominant 色も出力
-import sharp from 'sharp';
+//   PALETTE "1" で頻出色トップ N も出力 (sharp stats ベースの粗い近似)
+import path from 'node:path';
+import { createRequire } from 'node:module';
+// 依存(sharp)は対象プロジェクト側に導入済み。cwd の node_modules から解決する。
+const require = createRequire(path.join(process.cwd(), 'package.json'));
+const sharp = require('sharp');
 
 const SRC = process.env.SRC;
 if (!SRC) { console.error('SRC is required'); process.exit(1); }
